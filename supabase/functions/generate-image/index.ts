@@ -66,7 +66,7 @@ serve(async (req) => {
 
     const fullPrompt = `${prompt}. ${ratioHint[aspectRatio] || ratioHint.square}. Ultra high resolution, professional social media quality.`;
 
-    // Try Lovable AI first
+    // Try ContentForge AI first
     if (LOVABLE_API_KEY) {
       const response = await generateWithLovable(fullPrompt, LOVABLE_API_KEY);
 
@@ -82,7 +82,7 @@ serve(async (req) => {
 
       // Fall back to OpenAI on 402/429
       if ((response.status === 402 || response.status === 429) && OPENAI_API_KEY) {
-        console.log(`Lovable AI returned ${response.status}, falling back to OpenAI DALL-E`);
+        console.log(`ContentForge AI returned ${response.status}, falling back to OpenAI DALL-E`);
       } else if (!response.ok) {
         if (response.status === 429) {
           return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again." }), {

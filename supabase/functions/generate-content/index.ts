@@ -10,7 +10,7 @@ async function callAI(body: Record<string, any>, customKey?: string): Promise<Re
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   const OPENAI_API_KEY = customKey || Deno.env.get("OPENAI_API_KEY");
 
-  // Try Lovable AI first
+  // Try ContentForge AI first
   if (LOVABLE_API_KEY) {
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -25,7 +25,7 @@ async function callAI(body: Record<string, any>, customKey?: string): Promise<Re
 
     // If 402 (credits exhausted) or 429 (rate limit), fall back to OpenAI
     if ((resp.status === 402 || resp.status === 429) && OPENAI_API_KEY) {
-      console.log(`Lovable AI returned ${resp.status}, falling back to OpenAI`);
+      console.log(`ContentForge AI returned ${resp.status}, falling back to OpenAI`);
     } else {
       return resp; // Return the error response as-is
     }
