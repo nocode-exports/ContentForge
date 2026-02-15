@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { Zap, LogOut, LogIn } from "lucide-react";
+import { Zap, LogOut, LogIn, Shield, Key } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,7 +34,7 @@ const defaultWatermark: WatermarkConfig = {
 };
 
 const Index = () => {
-  const { user, signOut, loading: authLoading } = useAuth();
+  const { user, profile, signOut, refreshProfile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [content, setContent] = useState<GeneratedContent | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -144,6 +144,9 @@ const Index = () => {
 
     // Save to history AFTER all generations are complete
     await saveToHistory(input, { ...result, slides: finalSlides }, finalImageUrl);
+
+    // Refresh profile to update usage count
+    await refreshProfile();
   };
 
   const handleRegenerateText = () => {
@@ -167,6 +170,17 @@ const Index = () => {
         updated[slideIndex] = { ...updated[slideIndex], imageUrl: data.imageUrl };
         return { ...prev, slides: updated };
       });
+    }
+  };
+
+  const handleUpdateCustomKey = async (key: string) => {
+    if (!user) return;
+    const { error } = await supabase.from("profiles").update({ custom_openai_key: key }).eq("user_id", user.id);
+    if (error) {
+      toast.error("Failed to update API key");
+    } else {
+      toast.success("API key updated successfully");
+      refreshProfile();
     }
   };
 
@@ -204,7 +218,12 @@ const Index = () => {
           </div>
           {user ? (
             <div className="flex items-center gap-3">
-              <span className="text-xs text-muted-foreground hidden sm:block">{user.email}</span>
+              {(profile?.role === "admin" || profile?.role === "super_admin") && (
+                <Button variant="ghost" size="sm" onClick={() => navigate("/admin")} className="text-muted-foreground hover:text-primary gap-2 hidden md:flex">
+                  <Shield className="h-4 w-4" /> Admin
+                </Button>
+              )}
+              <span className="text-xs text-muted-foreground hidden lg:block">{user.email}</span>
               <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground hover:text-foreground">
                 <LogOut className="h-4 w-4" />
               </Button>
@@ -228,13 +247,55 @@ const Index = () => {
           </p>
         </div>
 
-        <InputForm onGenerate={handleGenerate} isLoading={isGeneratingText} />
+        <InputForm onGenerate={handleGenerate} isLoading={isGeneratingText} userTier={profile?.tier} />
 
-        {/* Watermark + History row */}
+        {user && profile && (
+          <div className="flex items-center justify-between p-4 rounded-xl bg-card border border-border shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary uppercase tracking-wider border border-primary/20">
+                {profile.tier} Plan
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Usage: <span className="font-bold text-foreground">{profile.monthly_usage_count}</span> posts this month
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => navigate("/pricing")} className="text-xs h-8">
+              Upgrade
+            </Button>
+          </div>
+        )}
+
         {user && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <WatermarkSettings config={watermark} onChange={setWatermark} />
-            <HistoryPanel onLoad={handleLoadHistory} />
+            <div className="space-y-6">
+              {profile?.tier === "unlimited" && (
+                <div className="glass-card p-6 space-y-4 border-primary/20">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <Key className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground">Custom OpenAI API Key</h3>
+                      <p className="text-xs text-muted-foreground italic">Unlimited tier perk</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="password"
+                      placeholder="sk-..."
+                      defaultValue={profile?.custom_openai_key || ""}
+                      onBlur={(e) => handleUpdateCustomKey(e.target.value)}
+                      className="flex-1 bg-secondary/50 border border-border px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    This key will be used for your content generations. Leave blank to use system defaults.
+                  </p>
+                </div>
+              )}
+              <HistoryPanel onLoad={handleLoadHistory} />
+            </div>
           </div>
         )}
 

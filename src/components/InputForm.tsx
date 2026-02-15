@@ -24,6 +24,7 @@ interface InputFormProps {
     carouselFormat: string;
   }) => void;
   isLoading: boolean;
+  userTier?: string;
 }
 
 const platforms = [
@@ -80,7 +81,7 @@ const templates = [
   { value: "case-study", label: "Case Study" },
 ];
 
-const InputForm = ({ onGenerate, isLoading }: InputFormProps) => {
+const InputForm = ({ onGenerate, isLoading, userTier = "free" }: InputFormProps) => {
   const [topic, setTopic] = useState("");
   const [platform, setPlatform] = useState("instagram");
   const [tone, setTone] = useState("professional");
@@ -89,6 +90,14 @@ const InputForm = ({ onGenerate, isLoading }: InputFormProps) => {
   const [carousel, setCarousel] = useState(false);
   const [carouselSlides, setCarouselSlides] = useState(5);
   const [carouselFormat, setCarouselFormat] = useState("square");
+
+  const isFree = userTier === "free";
+  const isStarter = userTier === "starter";
+  const isBasicsOnly = isFree || isStarter;
+
+  const availablePlatforms = isFree
+    ? platforms.filter(p => ["facebook", "instagram", "twitter"].includes(p.value))
+    : platforms;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,13 +128,18 @@ const InputForm = ({ onGenerate, isLoading }: InputFormProps) => {
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-card border-border max-h-60">
-              {platforms.map((p) => (
+              {availablePlatforms.map((p) => (
                 <SelectItem key={p.value} value={p.value}>
                   <span className="flex items-center gap-2">
                     <span>{p.icon}</span> {p.label}
                   </span>
                 </SelectItem>
               ))}
+              {isFree && (
+                <div className="p-2 text-xs text-muted-foreground border-t border-border mt-1">
+                  Upgrade to unlock 9+ more platforms
+                </div>
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -165,26 +179,26 @@ const InputForm = ({ onGenerate, isLoading }: InputFormProps) => {
 
       {/* Toggles */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/30 border border-border/60">
+        <div className={`flex items-center justify-between p-4 rounded-xl bg-secondary/30 border border-border/60 ${isBasicsOnly ? 'opacity-60 grayscale-[0.5]' : ''}`}>
           <div className="flex items-center gap-3">
             <FileText className="h-5 w-5 text-primary" />
             <div>
               <p className="text-sm font-semibold text-foreground">Full Article</p>
-              <p className="text-xs text-muted-foreground">800–1200 word blog post</p>
+              <p className="text-xs text-muted-foreground">{isBasicsOnly ? 'Pro feature' : '800–1200 word blog post'}</p>
             </div>
           </div>
-          <Switch checked={fullArticle} onCheckedChange={setFullArticle} />
+          <Switch checked={fullArticle} onCheckedChange={setFullArticle} disabled={isBasicsOnly} />
         </div>
 
-        <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/30 border border-border/60">
+        <div className={`flex items-center justify-between p-4 rounded-xl bg-secondary/30 border border-border/60 ${isBasicsOnly ? 'opacity-60 grayscale-[0.5]' : ''}`}>
           <div className="flex items-center gap-3">
             <Layers className="h-5 w-5 text-accent" />
             <div>
               <p className="text-sm font-semibold text-foreground">Carousel Post</p>
-              <p className="text-xs text-muted-foreground">Multi-slide images</p>
+              <p className="text-xs text-muted-foreground">{isBasicsOnly ? 'Pro feature' : 'Multi-slide images'}</p>
             </div>
           </div>
-          <Switch checked={carousel} onCheckedChange={setCarousel} />
+          <Switch checked={carousel} onCheckedChange={setCarousel} disabled={isBasicsOnly} />
         </div>
       </div>
 
@@ -197,7 +211,7 @@ const InputForm = ({ onGenerate, isLoading }: InputFormProps) => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-card border-border">
-                {[2,3,4,5,6,7,8,9,10].map((n) => (
+                {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                   <SelectItem key={n} value={String(n)}>{n} slides</SelectItem>
                 ))}
               </SelectContent>
