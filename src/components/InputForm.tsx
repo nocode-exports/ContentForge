@@ -96,8 +96,8 @@ const InputForm = ({ onGenerate, isLoading, userTier = "free" }: InputFormProps)
                     type="button"
                     onClick={() => setPlatform(p.id)}
                     className={`flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all ${platform === p.id
-                        ? "border-primary bg-primary/5 shadow-sm"
-                        : "border-slate-100 hover:border-slate-200 bg-white"
+                      ? "border-primary bg-primary/5 shadow-sm"
+                      : "border-slate-100 hover:border-slate-200 bg-white"
                       }`}
                   >
                     <p.icon className={`h-5 w-5 ${p.color}`} />
@@ -133,10 +133,9 @@ const InputForm = ({ onGenerate, isLoading, userTier = "free" }: InputFormProps)
             </SelectTrigger>
             <SelectContent className="font-medium">
               <SelectItem value="professional">Professional</SelectItem>
-              <SelectItem value="casual">Casual & Friendly</SelectItem>
-              <SelectItem value="bold">Bold & Confident</SelectItem>
-              <SelectItem value="witty">Witty & Humorous</SelectItem>
-              <SelectItem value="educational">Educational</SelectItem>
+              <SelectItem value="casual">Casual</SelectItem>
+              <SelectItem value="humorous">Humorous</SelectItem>
+              <SelectItem value="inspirational">Inspirational</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -148,11 +147,10 @@ const InputForm = ({ onGenerate, isLoading, userTier = "free" }: InputFormProps)
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="font-medium">
-              <SelectItem value="none">Default Posting</SelectItem>
-              <SelectItem value="expert">The Industry Expert</SelectItem>
-              <SelectItem value="listicle">The Essential List</SelectItem>
-              <SelectItem value="storyteller">Master Storyteller</SelectItem>
-              <SelectItem value="controversial">Hot Take / Debate</SelectItem>
+              <SelectItem value="none">No template</SelectItem>
+              <SelectItem value="quote">Quote</SelectItem>
+              <SelectItem value="announcement">Announcement</SelectItem>
+              <SelectItem value="educational">Educational</SelectItem>
             </SelectContent>
           </Select>
         </div>
