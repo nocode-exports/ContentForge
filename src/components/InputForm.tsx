@@ -47,38 +47,13 @@ const tones = [
   { value: "casual", label: "Casual" },
   { value: "humorous", label: "Humorous" },
   { value: "inspirational", label: "Inspirational" },
-  { value: "witty", label: "Witty" },
-  { value: "empathetic", label: "Empathetic" },
-  { value: "bold", label: "Bold" },
-  { value: "minimalist", label: "Minimalist" },
-  { value: "playful", label: "Playful" },
-  { value: "authoritative", label: "Authoritative" },
-  { value: "storytelling", label: "Storytelling" },
-  { value: "controversial", label: "Controversial" },
-  { value: "warm", label: "Warm" },
-  { value: "futuristic", label: "Futuristic" },
 ];
 
 const templates = [
   { value: "none", label: "No template" },
   { value: "quote", label: "Quote" },
   { value: "announcement", label: "Announcement" },
-  { value: "promotion", label: "Promotion" },
   { value: "educational", label: "Educational" },
-  { value: "how-to", label: "How-to Guide" },
-  { value: "listicle", label: "Listicle" },
-  { value: "behind-the-scenes", label: "Behind the Scenes" },
-  { value: "myth-buster", label: "Myth Buster" },
-  { value: "testimonial", label: "Customer Testimonial" },
-  { value: "poll", label: "Poll / Question" },
-  { value: "event-invite", label: "Event Invite" },
-  { value: "ama", label: "AMA" },
-  { value: "infographic", label: "Infographic" },
-  { value: "comparison", label: "Comparison" },
-  { value: "throwback", label: "Throwback" },
-  { value: "flash-sale", label: "Urgent / Flash Sale" },
-  { value: "trend-report", label: "Trend Report" },
-  { value: "case-study", label: "Case Study" },
 ];
 
 const InputForm = ({ onGenerate, isLoading, userTier = "free" }: InputFormProps) => {
@@ -86,10 +61,6 @@ const InputForm = ({ onGenerate, isLoading, userTier = "free" }: InputFormProps)
   const [platform, setPlatform] = useState("instagram");
   const [tone, setTone] = useState("professional");
   const [template, setTemplate] = useState("none");
-  const [fullArticle, setFullArticle] = useState(false);
-  const [carousel, setCarousel] = useState(false);
-  const [carouselSlides, setCarouselSlides] = useState(5);
-  const [carouselFormat, setCarouselFormat] = useState("square");
 
   const isFree = userTier === "free";
   const isStarter = userTier === "starter";
@@ -102,7 +73,7 @@ const InputForm = ({ onGenerate, isLoading, userTier = "free" }: InputFormProps)
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!topic.trim()) return;
-    onGenerate({ topic, platform, tone, template, fullArticle, carousel, carouselSlides, carouselFormat });
+    onGenerate({ topic, platform, tone, template, fullArticle: false, carousel: false, carouselSlides: 5, carouselFormat: "square" });
   };
 
   return (
@@ -177,60 +148,6 @@ const InputForm = ({ onGenerate, isLoading, userTier = "free" }: InputFormProps)
         </div>
       </div>
 
-      {/* Toggles */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className={`flex items-center justify-between p-4 rounded-xl bg-secondary/30 border border-border/60 ${isBasicsOnly ? 'opacity-60 grayscale-[0.5]' : ''}`}>
-          <div className="flex items-center gap-3">
-            <FileText className="h-5 w-5 text-primary" />
-            <div>
-              <p className="text-sm font-semibold text-foreground">Full Article</p>
-              <p className="text-xs text-muted-foreground">{isBasicsOnly ? 'Pro feature' : '800–1200 word blog post'}</p>
-            </div>
-          </div>
-          <Switch checked={fullArticle} onCheckedChange={setFullArticle} disabled={isBasicsOnly} />
-        </div>
-
-        <div className={`flex items-center justify-between p-4 rounded-xl bg-secondary/30 border border-border/60 ${isBasicsOnly ? 'opacity-60 grayscale-[0.5]' : ''}`}>
-          <div className="flex items-center gap-3">
-            <Layers className="h-5 w-5 text-accent" />
-            <div>
-              <p className="text-sm font-semibold text-foreground">Carousel Post</p>
-              <p className="text-xs text-muted-foreground">{isBasicsOnly ? 'Pro feature' : 'Multi-slide images'}</p>
-            </div>
-          </div>
-          <Switch checked={carousel} onCheckedChange={setCarousel} disabled={isBasicsOnly} />
-        </div>
-      </div>
-
-      {carousel && (
-        <div className="grid grid-cols-2 gap-4 animate-fade-in">
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold text-foreground">Number of Slides</Label>
-            <Select value={String(carouselSlides)} onValueChange={(v) => setCarouselSlides(Number(v))}>
-              <SelectTrigger className="bg-secondary/50 border-border h-11 rounded-xl">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border">
-                {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-                  <SelectItem key={n} value={String(n)}>{n} slides</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold text-foreground">Slide Format</Label>
-            <Select value={carouselFormat} onValueChange={setCarouselFormat}>
-              <SelectTrigger className="bg-secondary/50 border-border h-11 rounded-xl">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border">
-                <SelectItem value="square">Square (1:1)</SelectItem>
-                <SelectItem value="vertical">Vertical (9:16)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      )}
 
       <Button
         type="submit"

@@ -6,9 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import InputForm from "@/components/InputForm";
 import TextResult from "@/components/TextResult";
-import ImageResult from "@/components/ImageResult";
-import ArticleResult from "@/components/ArticleResult";
-import CarouselResult from "@/components/CarouselResult";
 import LoadingSkeleton from "@/components/LoadingSkeleton";
 import WatermarkSettings, { WatermarkConfig } from "@/components/WatermarkSettings";
 import HistoryPanel from "@/components/HistoryPanel";
@@ -130,22 +127,14 @@ const Index = () => {
   }, [lastInput]);
 
   const handleGenerate = async (input: any) => {
+    // Simplified generate content flow - no images or carousels
     const result = await generateText(input);
     if (!result) return;
 
-    let finalImageUrl = null;
-    let finalSlides = result.slides;
+    // Save to history (without images)
+    await saveToHistory(input, result, null);
 
-    if (input.carousel && result.slides) {
-      finalSlides = await generateCarouselImages(result.slides);
-    } else if (result.imagePrompt && !input.fullArticle) {
-      finalImageUrl = await generateImage(result.imagePrompt, aspectRatio);
-    }
-
-    // Save to history AFTER all generations are complete
-    await saveToHistory(input, { ...result, slides: finalSlides }, finalImageUrl);
-
-    // Refresh profile to update usage count
+    // Refresh profile
     await refreshProfile();
   };
 
@@ -153,25 +142,6 @@ const Index = () => {
     if (lastInput) generateText(lastInput);
   };
 
-  const handleRegenerateImage = () => {
-    if (content?.imagePrompt) generateImage(content.imagePrompt, aspectRatio);
-  };
-
-  const handleRegenerateSlide = async (slideIndex: number) => {
-    if (!content?.slides?.[slideIndex]) return;
-    const slide = content.slides[slideIndex];
-    const { data, error } = await supabase.functions.invoke("generate-image", {
-      body: { prompt: slide.imagePrompt, aspectRatio: lastInput?.carouselFormat || "square" },
-    });
-    if (!error && data?.imageUrl) {
-      setContent((prev) => {
-        if (!prev?.slides) return prev;
-        const updated = [...prev.slides];
-        updated[slideIndex] = { ...updated[slideIndex], imageUrl: data.imageUrl };
-        return { ...prev, slides: updated };
-      });
-    }
-  };
 
   const handleUpdateCustomKey = async (key: string) => {
     if (!user) return;
@@ -301,30 +271,8 @@ const Index = () => {
 
         {isGeneratingText && !content && <LoadingSkeleton />}
 
-        {content && mode === "article" && (
-          <ArticleResult
-            headline={content.headline}
-            post={content.post}
-            hashtags={content.hashtags}
-            cta={content.cta}
-            sectionImages={content.sectionImages || []}
-            onRegenerate={handleRegenerateText}
-            isRegenerating={isGeneratingText}
-          />
-        )}
-
-        {content && mode === "carousel" && content.slides && (
-          <CarouselResult
-            headline={content.headline}
-            slides={content.slides}
-            format={lastInput?.carouselFormat || "square"}
-            isGeneratingImages={isGeneratingCarousel}
-            onRegenerateSlide={handleRegenerateSlide}
-          />
-        )}
-
-        {content && mode === "post" && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {content && (
+          <div className="max-w-3xl mx-auto">
             <TextResult
               headline={content.headline}
               post={content.post}
@@ -332,14 +280,6 @@ const Index = () => {
               cta={content.cta}
               onRegenerate={handleRegenerateText}
               isRegenerating={isGeneratingText}
-            />
-            <ImageResult
-              imageUrl={imageUrl}
-              aspectRatio={aspectRatio}
-              onAspectRatioChange={setAspectRatio}
-              onRegenerate={handleRegenerateImage}
-              isGenerating={isGeneratingImage}
-              watermark={watermark}
             />
           </div>
         )}
