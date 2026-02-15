@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { Zap, LogOut, Sparkles, Image, Shield, Settings } from "lucide-react";
+import { Zap, LogOut, Sparkles, Image, Shield, Settings, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,34 +47,8 @@ const Index = () => {
   const [lastInput, setLastInput] = useState<any>(null);
   const [watermark, setWatermark] = useState<WatermarkConfig>(defaultWatermark);
   const [mode, setMode] = useState<"post" | "article" | "carousel">("post");
-  const [customKey, setCustomKey] = useState(profile?.custom_openai_key || "");
-  const [customGeminiKey, setCustomGeminiKey] = useState(profile?.custom_gemini_key || "");
 
-  // Sync state with profile when it updates (via Realtime or refresh)
-  useEffect(() => {
-    if (profile) {
-      setCustomKey(profile.custom_openai_key || "");
-      setCustomGeminiKey(profile.custom_gemini_key || "");
-    }
-  }, [profile]);
 
-  const handleUpdateCustomKey = async () => {
-    if (!profile) return;
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        custom_openai_key: customKey,
-        custom_gemini_key: customGeminiKey
-      })
-      .eq("user_id", profile.user_id);
-
-    if (error) {
-      toast.error("Failed to update API key");
-    } else {
-      toast.success("API key updated successfully");
-      refreshProfile();
-    }
-  };
 
   const saveToHistory = async (input: any, result: GeneratedContent, imgUrl: string | null) => {
     if (!user) return;
@@ -297,6 +271,10 @@ const Index = () => {
               <Zap className="h-4 w-4 mr-2 text-amber-500" />
               {profile?.tier ? profile.tier.toUpperCase() : "FREE"} PLAN
             </Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/profile")} className="font-bold text-slate-500">
+              <User className="h-4 w-4 mr-2" />
+              Profile
+            </Button>
             <Button variant="ghost" size="sm" onClick={signOut} className="font-bold text-slate-500">
               <LogOut className="h-4 w-4 mr-2" />
               Sign Out
@@ -334,44 +312,6 @@ const Index = () => {
                 Resets on {profile?.last_usage_reset ? new Date(profile.last_usage_reset).toLocaleDateString() : 'N/A'}
               </p>
             </div>
-
-            {profile?.tier === "unlimited" && (
-              <div className="glass-card p-6 space-y-4">
-                <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                  <Settings className="h-4 w-4 text-primary" />
-                  Custom API Keys
-                </h3>
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase">Gemini API Key</label>
-                    <Input
-                      type="password"
-                      placeholder="Gemini API Key..."
-                      value={customGeminiKey}
-                      onChange={(e) => setCustomGeminiKey(e.target.value)}
-                      className="font-mono text-xs"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase">OpenAI API Key</label>
-                    <Input
-                      type="password"
-                      placeholder="sk-..."
-                      value={customKey}
-                      onChange={(e) => setCustomKey(e.target.value)}
-                      className="font-mono text-xs"
-                    />
-                  </div>
-                  <Button
-                    onClick={handleUpdateCustomKey}
-                    className="w-full text-xs h-8 font-bold"
-                    variant="outline"
-                  >
-                    Save Keys
-                  </Button>
-                </div>
-              </div>
-            )}
 
             <div className="glass-card p-6 shadow-sm">
               <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
