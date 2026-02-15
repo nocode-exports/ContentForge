@@ -53,8 +53,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    // Realtime subscription for profile updates
+    let profileSubscription: any = null;
+    if (session?.user) {
+      profileSubscription = supabase
+        .channel(`public:profiles:user_id=eq.${session.user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'profiles',
+            filter: `user_id=eq.${session.user.id}`,
+          },
+          (payload) => {
+            console.log('Realtime profile update received:', payload.new);
+            setProfile(payload.new);
+          }
+        )
+        .subscribe();
+    }
+
+    return () => {
+      subscription.unsubscribe();
+      if (profileSubscription) supabase.removeChannel(profileSubscription);
+    };
+  }, [session?.user?.id]);
 
   const refreshProfile = async () => {
     if (session?.user) {

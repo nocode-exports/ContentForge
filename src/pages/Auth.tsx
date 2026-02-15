@@ -27,10 +27,11 @@ const Auth = () => {
         if (error) throw error;
         toast.success("Welcome back!");
       } else {
+        const redirectURL = import.meta.env.VITE_SITE_URL || window.location.origin;
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin },
+          options: { emailRedirectTo: redirectURL },
         });
         if (error) throw error;
         toast.success("Check your email to confirm your account!");

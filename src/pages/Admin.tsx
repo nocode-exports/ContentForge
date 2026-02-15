@@ -27,12 +27,11 @@ const Admin = () => {
     const [updatingId, setUpdatingId] = useState<string | null>(null);
 
     useEffect(() => {
-        if (profile && !["super_admin", "admin"].includes(profile.role)) {
-            toast.error("Unauthorized access");
-            navigate("/");
-            return;
+        // Redundant check since AdminGuard handles this, 
+        // but good for extra safety and trigger initial fetch
+        if (profile) {
+            fetchUsers();
         }
-        fetchUsers();
     }, [profile]);
 
     const fetchUsers = async () => {
@@ -232,7 +231,7 @@ const Admin = () => {
                                                 <Select
                                                     defaultValue={user.role}
                                                     onValueChange={(val) => updateRole(user.user_id, val)}
-                                                    disabled={updatingId === user.user_id}
+                                                    disabled={updatingId === user.user_id || profile?.role === 'moderator' || (profile?.role === 'admin' && (user.role === 'admin' || user.role === 'super_admin'))}
                                                 >
                                                     <SelectTrigger className={`w-36 h-9 font-bold rounded-full ${user.role === 'super_admin' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
                                                         <SelectValue />
@@ -249,7 +248,7 @@ const Admin = () => {
                                                 <Select
                                                     defaultValue={user.tier}
                                                     onValueChange={(val) => updateTier(user.user_id, val)}
-                                                    disabled={updatingId === user.user_id}
+                                                    disabled={updatingId === user.user_id || profile?.role === 'moderator' || (profile?.role === 'admin' && (user.role === 'admin' || user.role === 'super_admin'))}
                                                 >
                                                     <SelectTrigger className={`w-36 h-9 font-bold rounded-full ${user.tier === 'unlimited' ? 'bg-purple-50 border-purple-200 text-purple-700' : user.tier === 'pro' ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
                                                         <SelectValue />

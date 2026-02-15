@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import Pricing from "./pages/Pricing";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import { AdminGuard } from "./components/AdminGuard";
 
 const queryClient = new QueryClient();
 
@@ -23,7 +24,14 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/pricing" element={<Pricing />} />
-            <Route path="/admin" element={<Admin />} />
+            <Route
+              path="/admin"
+              element={
+                <AdminGuard>
+                  <Admin />
+                </AdminGuard>
+              }
+            />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
