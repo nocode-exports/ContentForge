@@ -1,13 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-async function callAI(body: Record<string, any>): Promise<Response> {
+async function callAI(body: Record<string, any>, customKey?: string): Promise<Response> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+  const OPENAI_API_KEY = customKey || Deno.env.get("OPENAI_API_KEY");
 
   // Try Lovable AI first
   if (LOVABLE_API_KEY) {
@@ -60,7 +61,63 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+
+    // Get the user from the authorization header
+    const authHeader = req.headers.get("Authorization")!;
+    const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
+    if (authError || !user) throw new Error("Unauthorized");
+
+    // Fetch user profile
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("user_id", user.id)
+      .single();
+
+    if (profileError || !profile) throw new Error("Could not fetch user profile");
+
+    // Monthly Reset Logic
+    const now = new Date();
+    const lastReset = new Date(profile.last_usage_reset);
+    let currentUsage = profile.monthly_usage_count;
+
+    if (now.getMonth() !== lastReset.getMonth() || now.getFullYear() !== lastReset.getFullYear()) {
+      currentUsage = 0;
+      await supabase
+        .from("profiles")
+        .update({ monthly_usage_count: 0, last_usage_reset: now.toISOString() })
+        .eq("user_id", user.id);
+    }
+
     const { topic, platform, tone, template, fullArticle, carousel, carouselSlides } = await req.json();
+
+    // Tier Enforcement logic
+    const tier = profile.tier as string;
+    const limits: Record<string, number> = { free: 5, starter: 50, pro: 200, unlimited: 999999 };
+
+    if (currentUsage >= limits[tier]) {
+      return new Response(JSON.stringify({ error: `Monthly limit reached for ${tier} tier. Please upgrade.` }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // restricted platforms for free tier
+    const freePlatforms = ["facebook", "instagram", "twitter"];
+    if (tier === "free" && !freePlatforms.includes(platform)) {
+      return new Response(JSON.stringify({ error: "This platform is only available on paid plans." }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Carousel/Article restricted for free/starter
+    if ((fullArticle || carousel) && (tier === "free" || tier === "starter")) {
+      return new Response(JSON.stringify({ error: "Carousel and Article modes are available on Pro and Unlimited plans." }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const platformLimits: Record<string, number> = {
       twitter: 280, instagram: 2200, linkedin: 3000, facebook: 5000,
@@ -196,7 +253,7 @@ Return a JSON object with exactly these fields:
         },
       ],
       tool_choice: { type: "function", function: { name: functionName } },
-    });
+    }, tier === "unlimited" ? profile.custom_openai_key : undefined);
 
     if (!response.ok) {
       if (response.status === 429) {
@@ -220,6 +277,13 @@ Return a JSON object with exactly these fields:
     if (!toolCall) throw new Error("No structured output returned");
 
     const content = JSON.parse(toolCall.function.arguments);
+
+    // Increment usage count
+    await supabase
+      .from("profiles")
+      .update({ monthly_usage_count: currentUsage + 1 })
+      .eq("user_id", user.id);
+
     return new Response(JSON.stringify(content), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
