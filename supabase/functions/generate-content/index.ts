@@ -6,11 +6,44 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-async function callAI(body: Record<string, any>, customKey?: string): Promise<Response> {
+async function callAI(body: Record<string, any>, options: { customOpenAIKey?: string, customGeminiKey?: string }): Promise<Response> {
+  const GEMINI_API_KEY = options.customGeminiKey || Deno.env.get("GEMINI_API_KEY");
+  const OPENAI_API_KEY = options.customOpenAIKey || Deno.env.get("OPENAI_API_KEY");
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  const OPENAI_API_KEY = customKey || Deno.env.get("OPENAI_API_KEY");
 
-  // Try ContentForge AI first
+  const modelMap: Record<string, string> = {
+    "google/gemini-pro": "gemini-1.5-pro",
+    "google/gemini-flash": "gemini-1.5-flash",
+    "google/gemini-3-flash-preview": "gemini-1.5-flash", // legacy mapping
+  };
+
+  // 1. Try Gemini AI first (Primary)
+  if (GEMINI_API_KEY) {
+    const geminiBody = {
+      ...body,
+      model: modelMap[body.model] || "gemini-1.5-flash",
+    };
+
+    try {
+      const resp = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${GEMINI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(geminiBody),
+      });
+
+      if (resp.ok) return resp;
+
+      console.error(`Gemini AI returned ${resp.status}:`, await resp.clone().text());
+      // Fall through to other providers if 429 or 5xx
+    } catch (err) {
+      console.error("Gemini fetch error:", err);
+    }
+  }
+
+  // 2. Try Lovable AI (ContentForge)
   if (LOVABLE_API_KEY) {
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -22,39 +55,27 @@ async function callAI(body: Record<string, any>, customKey?: string): Promise<Re
     });
 
     if (resp.ok) return resp;
-
-    // If 402 (credits exhausted) or 429 (rate limit), fall back to OpenAI
-    if ((resp.status === 402 || resp.status === 429) && OPENAI_API_KEY) {
-      console.log(`ContentForge AI returned ${resp.status}, falling back to OpenAI`);
-    } else {
-      return resp; // Return the error response as-is
-    }
+    console.error(`Lovable AI returned ${resp.status}`);
   }
 
-  // Fallback to OpenAI
-  if (!OPENAI_API_KEY) {
-    throw new Error("No AI API key configured. Set LOVABLE_API_KEY or OPENAI_API_KEY.");
+  // 3. Fallback to OpenAI
+  if (OPENAI_API_KEY) {
+    const openaiBody = {
+      ...body,
+      model: body.model.includes("gemini") ? "gpt-4o-mini" : body.model,
+    };
+
+    return await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(openaiBody),
+    });
   }
 
-  // Map model names for OpenAI
-  const modelMap: Record<string, string> = {
-    "google/gemini-3-flash-preview": "gpt-4o-mini",
-    "google/gemini-2.5-flash": "gpt-4o-mini",
-    "google/gemini-2.5-pro": "gpt-4o",
-  };
-  const openaiBody = {
-    ...body,
-    model: modelMap[body.model] || "gpt-4o-mini",
-  };
-
-  return await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(openaiBody),
-  });
+  throw new Error("No AI API key configured or all providers failed. Please set GEMINI_API_KEY or OPENAI_API_KEY.");
 }
 
 serve(async (req) => {
@@ -253,7 +274,10 @@ Return a JSON object with exactly these fields:
         },
       ],
       tool_choice: { type: "function", function: { name: functionName } },
-    }, tier === "unlimited" ? profile.custom_openai_key : undefined);
+    }, {
+      customOpenAIKey: tier === "unlimited" ? profile.custom_openai_key : undefined,
+      customGeminiKey: tier === "unlimited" ? profile.custom_gemini_key : undefined,
+    });
 
     if (!response.ok) {
       if (response.status === 429) {

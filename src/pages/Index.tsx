@@ -48,12 +48,24 @@ const Index = () => {
   const [watermark, setWatermark] = useState<WatermarkConfig>(defaultWatermark);
   const [mode, setMode] = useState<"post" | "article" | "carousel">("post");
   const [customKey, setCustomKey] = useState(profile?.custom_openai_key || "");
+  const [customGeminiKey, setCustomGeminiKey] = useState(profile?.custom_gemini_key || "");
+
+  // Sync state with profile when it updates (via Realtime or refresh)
+  useEffect(() => {
+    if (profile) {
+      setCustomKey(profile.custom_openai_key || "");
+      setCustomGeminiKey(profile.custom_gemini_key || "");
+    }
+  }, [profile]);
 
   const handleUpdateCustomKey = async () => {
     if (!profile) return;
     const { error } = await supabase
       .from("profiles")
-      .update({ custom_openai_key: customKey })
+      .update({
+        custom_openai_key: customKey,
+        custom_gemini_key: customGeminiKey
+      })
       .eq("user_id", profile.user_id);
 
     if (error) {
@@ -327,22 +339,35 @@ const Index = () => {
               <div className="glass-card p-6 space-y-4">
                 <h3 className="font-bold text-slate-900 flex items-center gap-2">
                   <Settings className="h-4 w-4 text-primary" />
-                  Custom OpenAI Key
+                  Custom API Keys
                 </h3>
-                <div className="space-y-2">
-                  <Input
-                    type="password"
-                    placeholder="sk-..."
-                    value={customKey}
-                    onChange={(e) => setCustomKey(e.target.value)}
-                    className="font-mono text-xs"
-                  />
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase">Gemini API Key</label>
+                    <Input
+                      type="password"
+                      placeholder="Gemini API Key..."
+                      value={customGeminiKey}
+                      onChange={(e) => setCustomGeminiKey(e.target.value)}
+                      className="font-mono text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase">OpenAI API Key</label>
+                    <Input
+                      type="password"
+                      placeholder="sk-..."
+                      value={customKey}
+                      onChange={(e) => setCustomKey(e.target.value)}
+                      className="font-mono text-xs"
+                    />
+                  </div>
                   <Button
                     onClick={handleUpdateCustomKey}
                     className="w-full text-xs h-8 font-bold"
                     variant="outline"
                   >
-                    Save Key
+                    Save Keys
                   </Button>
                 </div>
               </div>
