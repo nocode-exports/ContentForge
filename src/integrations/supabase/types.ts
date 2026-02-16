@@ -182,6 +182,39 @@ export type Database = {
         }
         Relationships: []
       }
+      voice_profiles: {
+        Row: {
+          id: string
+          user_id: string
+          profile_name: string
+          tone_description: string
+          writing_style: string
+          characteristics: string[]
+          sample_sentences: string[]
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          profile_name: string
+          tone_description: string
+          writing_style: string
+          characteristics?: string[]
+          sample_sentences?: string[]
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          profile_name?: string
+          tone_description?: string
+          writing_style?: string
+          characteristics?: string[]
+          sample_sentences?: string[]
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

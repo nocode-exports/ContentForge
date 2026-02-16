@@ -130,8 +130,8 @@ const Profile = () => {
         return null;
     }
 
-    const limits: Record<string, number> = { free: 5000, starter: 50000, pro: 999999, unlimited: 999999, lifetime: 999999 };
-    const tierLimit = limits[profile?.tier as string] || 5000;
+    const limits: Record<string, number> = { free: 500, starter: 50000, pro: 999999, unlimited: 999999, lifetime: 999999 };
+    const tierLimit = limits[profile?.tier as string] || 500;
     const usagePercentage = Math.min(100, ((profile?.monthly_usage_count || 0) / tierLimit) * 100);
 
     return (

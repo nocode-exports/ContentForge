@@ -116,11 +116,11 @@ serve(async (req: Request) => {
         .eq("user_id", user.id);
     }
 
-    const { topic, platform, tone, template, fullArticle, carousel, carouselSlides, includeImage } = await req.json();
+    const { topic, platform, tone, template, fullArticle, carousel, carouselSlides, includeImage, voiceProfileId } = await req.json();
 
     // Tier Enforcement logic
     const tier = profile.role === 'super_admin' || profile.role === 'admin' ? 'unlimited' : (profile.tier as string || 'free');
-    const limits: Record<string, number> = { free: 5000, starter: 50000, pro: 999999, unlimited: 999999, lifetime: 999999 };
+    const limits: Record<string, number> = { free: 500, starter: 50000, pro: 999999, unlimited: 999999, lifetime: 999999 };
 
     // Check if user has their own keys
     const hasBYOK = !!(profile.custom_gemini_key || profile.custom_openai_key);
@@ -134,9 +134,11 @@ serve(async (req: Request) => {
 
     // Use Credits check if no BYOK and not on a high-tier plan (pro/lifetime/unlimited)
     const isPaidTier = ['pro', 'unlimited', 'lifetime'].includes(tier);
-    if (!hasBYOK && !isPaidTier) {
+    const isFreeUnderLimit = tier === 'free' && currentUsage < limits.free;
+
+    if (!hasBYOK && !isPaidTier && !isFreeUnderLimit) {
       if ((profile.credits_balance || 0) < 5) { // Minimum 5 credits to start (500 words)
-        return new Response(JSON.stringify({ error: "Insufficient credits. Please add credits or bring your own API key." }), {
+        return new Response(JSON.stringify({ error: "Insufficient credits. Please add credits or Bring Your Own API Key." }), {
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -173,6 +175,20 @@ serve(async (req: Request) => {
     let systemPrompt: string;
     let parameters: Record<string, any>;
 
+    let voiceContext = "";
+    if (voiceProfileId && voiceProfileId !== "none") {
+      const { data: voiceProfile } = await supabase.from("voice_profiles").select("*").eq("id", voiceProfileId).single();
+      if (voiceProfile) {
+        voiceContext = `\n\nWriting Voice / Tone Context (STRICTLY FOLLOW THIS):
+- Tone: ${voiceProfile.tone_description}
+- Style: ${voiceProfile.writing_style}
+- Characteristics: ${voiceProfile.characteristics.join(", ")}
+- Inspiration Samples: "${voiceProfile.sample_sentences.join('" | "')}"`;
+      }
+    }
+
+    const effectiveTone = voiceContext ? "Custom Voice Profile (attached below)" : tone;
+
     const bioContext = profile.bio ? `\n\nUser/Brand Context: ${profile.bio}` : "";
     const imageInstruction = includeImage !== false ? "- Include an AI image suggestion prompt" : "- DO NOT include any image prompts or visual descriptions";
     const heroImageInstruction = includeImage !== false ? "- Include a hero image prompt" : "- DO NOT include any image prompts";
@@ -184,9 +200,10 @@ serve(async (req: Request) => {
 ${bioContext}
 
 Rules:
-- Tone: ${tone}
+- Tone: ${effectiveTone}
 - Optimized for ${platform} audience
 - ${templateHint}
+${voiceContext}
 - Include a compelling headline
 - Structure with subheadings (H2/H3), bullet points, and clear sections
 - Include an engaging introduction and strong conclusion
@@ -223,9 +240,10 @@ Return structured output with the article content and image suggestions.`;
 ${bioContext}
 
 Rules:
-- Tone: ${tone}
+- Tone: ${effectiveTone}
 - ${templateHint}
 - ${carouselImageInstruction}
+${voiceContext}
 - First slide should be a hook/cover, last slide should be a CTA
 - Keep text per slide concise and impactful
 - Maintain consistent branding narrative across all slides
@@ -264,9 +282,10 @@ Return structured output.`;
 ${bioContext}
 
 Rules:
-- Tone: ${tone}
+- Tone: ${effectiveTone}
 - Max post length: ${charLimit} characters
 - ${templateHint}
+${voiceContext}
 ${includeImage !== false ? "- Include a detailed image generation prompt" : "- DO NOT include any image prompts"}
 
 Return a JSON object with exactly these fields:

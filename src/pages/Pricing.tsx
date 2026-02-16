@@ -67,33 +67,35 @@ const Pricing = () => {
             name: "Free",
             id: "free",
             price: "$0",
-            description: "Platform access. Bring your own API key.",
+            period: "/forever",
+            description: "Perfect for testing the platform.",
             features: [
-                "BYOK Required (OpenAI/Gemini)",
-                "5,000 curated words/month",
-                "Text-only generation",
-                "Basic modes (Post only)",
-                "Community support",
+                "500 curated words / month",
+                "Platforms: LinkedIn, Twitter",
+                "Basic AI models",
+                "No api key required",
             ],
             notIncluded: [
+                "OpenAI/Gemini api key Required",
                 "Carousel generation",
-                "Article generation",
-                "Unlimited words",
-                "Images without credits",
+                "Full article generation",
             ],
-            buttonText: "Current Plan",
-            current: true,
+            buttonText: "Start for Free",
+            highlight: false,
+            badge: null,
             color: "border-slate-200",
-            accent: "bg-slate-100/50",
+            accent: "bg-slate-50/50",
         },
         {
             name: "Pro Monthly",
             id: "pro",
-            price: "$9.99",
+            price: "$9.90",
             period: "/month",
-            description: "The complete content toolkit. BYOK supported.",
+            oldPrice: "$12.90",
+            description: "The complete content toolkit.",
             features: [
                 "Unlimited curated words",
+                "OpenAI/Gemini api key Required",
                 "50 images/month included",
                 "All 12+ social platforms",
                 "Carousel generation unlocked",
@@ -110,22 +112,22 @@ const Pricing = () => {
             accent: "bg-primary/5",
         },
         {
-            name: "Lifetime Access",
-            id: "lifetime",
+            name: "Premium Plus",
+            id: "unlimited",
             price: "$79",
             period: "",
-            description: "Own your tools forever. One-time payment.",
+            oldPrice: "$129",
+            description: "The ultimate power plan for creators.",
             features: [
-                "Never pay a monthly fee",
-                "Unlimited curated words",
-                "Everything in Pro forever",
-                "First 50 members only",
+                "Everything in Pro",
+                "Unlimited everything",
+                "Early access to features",
                 "Priority new features",
             ],
             notIncluded: [],
-            buttonText: "Claim Lifetime Spot",
+            buttonText: "Join Elite Plan",
             highlight: false,
-            badge: "Limited Offer",
+            badge: "Best Value",
             color: "border-purple-200",
             accent: "bg-purple-50/50",
         },
@@ -200,6 +202,11 @@ const Pricing = () => {
                                 <div className="mt-4 flex items-baseline gap-1">
                                     <span className="text-4xl font-black text-slate-900">{plan.price}</span>
                                     {plan.period && <span className="text-slate-500 font-semibold">{plan.period}</span>}
+                                    {plan.oldPrice && (
+                                        <span className="text-lg text-slate-400 line-through ml-2 font-medium">
+                                            {plan.oldPrice}
+                                        </span>
+                                    )}
                                 </div>
                             </CardHeader>
 
@@ -300,7 +307,7 @@ const Pricing = () => {
                                 </div>
                                 <p className="text-xs text-slate-400 font-medium">$0 platform fee + ~$2.50 direct API cost</p>
                                 <div className="mt-4 pt-4 border-t border-slate-50">
-                                    <Button className="w-full font-bold gradient-btn h-10" onClick={() => navigate("/auth")}>
+                                    <Button className="w-full font-bold gradient-btn h-10" onClick={() => navigate("/profile")}>
                                         Use My Own Key
                                     </Button>
                                 </div>
