@@ -4,13 +4,14 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import Pricing from "./pages/Pricing";
-import Profile from "./pages/Profile";
-import Admin from "./pages/Admin";
-import NotFound from "./pages/NotFound";
-import { AdminGuard } from "./components/AdminGuard";
+import Index from "@/pages/Index";
+import Auth from "@/pages/Auth";
+import Pricing from "@/pages/Pricing";
+import Profile from "@/pages/Profile";
+import Admin from "@/pages/Admin";
+import NotFound from "@/pages/NotFound";
+import { AuthGuard } from "@/components/AuthGuard";
+import { AdminGuard } from "@/components/AdminGuard";
 
 const queryClient = new QueryClient();
 
@@ -22,16 +23,32 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            <Route path="/" element={<Index />} />
+            <Route
+              path="/"
+              element={
+                <AuthGuard>
+                  <Index />
+                </AuthGuard>
+              }
+            />
             <Route path="/auth" element={<Auth />} />
             <Route path="/pricing" element={<Pricing />} />
-            <Route path="/profile" element={<Profile />} />
+            <Route
+              path="/profile"
+              element={
+                <AuthGuard>
+                  <Profile />
+                </AuthGuard>
+              }
+            />
             <Route
               path="/admin"
               element={
-                <AdminGuard>
-                  <Admin />
-                </AdminGuard>
+                <AuthGuard>
+                  <AdminGuard>
+                    <Admin />
+                  </AdminGuard>
+                </AuthGuard>
               }
             />
             <Route path="*" element={<NotFound />} />

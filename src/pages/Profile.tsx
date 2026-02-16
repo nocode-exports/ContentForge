@@ -130,8 +130,8 @@ const Profile = () => {
         return null;
     }
 
-    const limits: Record<string, number> = { free: 5, starter: 50, pro: 200, unlimited: 9999 };
-    const tierLimit = limits[profile?.tier as string] || 5;
+    const limits: Record<string, number> = { free: 5000, starter: 50000, pro: 999999, unlimited: 999999, lifetime: 999999 };
+    const tierLimit = limits[profile?.tier as string] || 5000;
     const usagePercentage = Math.min(100, ((profile?.monthly_usage_count || 0) / tierLimit) * 100);
 
     return (
@@ -185,9 +185,9 @@ const Profile = () => {
 
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm font-bold text-slate-600">Monthly Usage</span>
+                                    <span className="text-sm font-bold text-slate-600">Monthly Words</span>
                                     <span className="text-sm font-bold text-primary">
-                                        {profile?.monthly_usage_count || 0} / {tierLimit === 9999 ? "∞" : tierLimit}
+                                        {profile?.monthly_usage_count || 0} / {tierLimit >= 99999 ? "∞" : tierLimit}
                                     </span>
                                 </div>
                                 <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -200,14 +200,14 @@ const Profile = () => {
                                 <div className="flex items-center justify-between pt-2">
                                     <span className="text-sm font-bold text-slate-600 flex items-center gap-2">
                                         <Coins className="h-4 w-4 text-amber-500" />
-                                        Balance
+                                        Credit Balance
                                     </span>
                                     <span className="text-sm font-black text-amber-600">
-                                        {profile?.credits || 0} Credits
+                                        {profile?.credits_balance || 0} Credits
                                     </span>
                                 </div>
                                 <Button onClick={() => navigate("/pricing")} size="sm" variant="outline" className="w-full text-[10px] font-bold h-7 border-amber-200 hover:bg-amber-50">
-                                    Get More Credits
+                                    Buy Credit Pack
                                 </Button>
 
                                 <Separator className="my-2" />

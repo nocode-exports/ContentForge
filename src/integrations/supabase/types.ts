@@ -72,6 +72,9 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"]
           tier: Database["public"]["Enums"]["subscription_tier"]
           custom_openai_key: string | null
+          custom_gemini_key: string | null
+          credits_balance: number
+          bio: string | null
           monthly_usage_count: number
           last_usage_reset: string
         }
@@ -84,6 +87,9 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           tier?: Database["public"]["Enums"]["subscription_tier"]
           custom_openai_key?: string | null
+          custom_gemini_key?: string | null
+          credits_balance?: number
+          bio?: string | null
           monthly_usage_count?: number
           last_usage_reset?: string
         }
@@ -96,8 +102,83 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           tier?: Database["public"]["Enums"]["subscription_tier"]
           custom_openai_key?: string | null
+          custom_gemini_key?: string | null
+          credits_balance?: number
+          bio?: string | null
           monthly_usage_count?: number
           last_usage_reset?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          id: string
+          user_id: string
+          plan_name: string
+          amount: number
+          payment_method: string
+          proof_url: string | null
+          transaction_id: string | null
+          status: "pending" | "approved" | "rejected"
+          admin_notes: string | null
+          created_at: string
+          approved_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          plan_name: string
+          amount: number
+          payment_method: string
+          proof_url?: string | null
+          transaction_id?: string | null
+          status?: "pending" | "approved" | "rejected"
+          admin_notes?: string | null
+          created_at?: string
+          approved_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          plan_name?: string
+          amount?: number
+          payment_method?: string
+          proof_url?: string | null
+          transaction_id?: string | null
+          status?: "pending" | "approved" | "rejected"
+          admin_notes?: string | null
+          created_at?: string
+          approved_at?: string | null
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          id: string
+          user_id: string
+          subject: string
+          content: string
+          status: "pending" | "investigating" | "resolved"
+          admin_notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          subject: string
+          content: string
+          status?: "pending" | "investigating" | "resolved"
+          admin_notes?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          subject?: string
+          content?: string
+          status?: "pending" | "investigating" | "resolved"
+          admin_notes?: string | null
+          created_at?: string
         }
         Relationships: []
       }
@@ -110,7 +191,7 @@ export type Database = {
     }
     Enums: {
       user_role: "super_admin" | "admin" | "moderator" | "user"
-      subscription_tier: "free" | "starter" | "pro" | "unlimited"
+      subscription_tier: "free" | "starter" | "pro" | "unlimited" | "lifetime"
     }
     CompositeTypes: {
       [_ in never]: never

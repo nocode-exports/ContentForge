@@ -24,8 +24,10 @@ const Admin = () => {
     const navigate = useNavigate();
     const [users, setUsers] = useState<any[]>([]);
     const [messages, setMessages] = useState<any[]>([]);
+    const [transactions, setTransactions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [msgLoading, setMsgLoading] = useState(false);
+    const [txnLoading, setTxnLoading] = useState(false);
     const [search, setSearch] = useState("");
     const [updatingId, setUpdatingId] = useState<string | null>(null);
 
@@ -33,8 +35,24 @@ const Admin = () => {
         if (profile) {
             fetchUsers();
             fetchMessages();
+            fetchTransactions();
         }
     }, [profile]);
+
+    const fetchTransactions = async () => {
+        setTxnLoading(true);
+        const { data, error } = await supabase
+            .from("transactions")
+            .select("*, profiles(display_name, email)")
+            .order("created_at", { ascending: false });
+
+        if (error) {
+            console.error("Error fetching transactions:", error);
+        } else {
+            setTransactions(data || []);
+        }
+        setTxnLoading(false);
+    };
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -118,7 +136,7 @@ const Admin = () => {
         setUpdatingId(userId);
         const { error } = await supabase
             .from("profiles")
-            .update({ credits })
+            .update({ credits_balance: credits })
             .eq("user_id", userId);
 
         if (error) {
@@ -126,6 +144,77 @@ const Admin = () => {
         } else {
             toast.success("Credits updated successfully");
             fetchUsers();
+        }
+        setUpdatingId(null);
+    };
+
+    const handleApproveTransaction = async (txn: any) => {
+        setUpdatingId(txn.id);
+        try {
+            // 1. Update Profile (Tier or Credits)
+            let updatePayload: any = {};
+            if (txn.plan_name.includes("Credit Pack")) {
+                // Extract credit amount from plan name or hardcode mapping
+                // Simple mapping for now based on pricing
+                const creditMapping: any = {
+                    "Starter": 2000,
+                    "Popular": 4500,
+                    "Pro": 9000,
+                    "Elite": 18500
+                };
+                const packName = txn.plan_name.split(": ")[1];
+                const creditsToAdd = creditMapping[packName] || 0;
+
+                // Fetch current user credits
+                const { data: userProfile } = await supabase.from("profiles").select("credits_balance").eq("user_id", txn.user_id).single();
+                updatePayload = { credits_balance: (userProfile?.credits_balance || 0) + creditsToAdd };
+            } else {
+                // Map plan name to tier
+                const tierMapping: any = {
+                    "Free": "free",
+                    "Pro Monthly": "pro",
+                    "Lifetime Access": "lifetime"
+                };
+                updatePayload = { tier: tierMapping[txn.plan_name] || "free" };
+            }
+
+            const { error: profileError } = await supabase
+                .from("profiles")
+                .update(updatePayload)
+                .eq("user_id", txn.user_id);
+
+            if (profileError) throw profileError;
+
+            // 2. Update Transaction Status
+            const { error: txnError } = await supabase
+                .from("transactions")
+                .update({ status: "approved", approved_at: new Date().toISOString() })
+                .eq("id", txn.id);
+
+            if (txnError) throw txnError;
+
+            toast.success("Transaction approved and user updated!");
+            fetchTransactions();
+            fetchUsers();
+        } catch (err: any) {
+            toast.error(err.message);
+        } finally {
+            setUpdatingId(null);
+        }
+    };
+
+    const handleRejectTransaction = async (txnId: string) => {
+        setUpdatingId(txnId);
+        const { error } = await supabase
+            .from("transactions")
+            .update({ status: "rejected" })
+            .eq("id", txnId);
+
+        if (error) {
+            toast.error("Failed to reject transaction");
+        } else {
+            toast.success("Transaction rejected");
+            fetchTransactions();
         }
         setUpdatingId(null);
     };
@@ -201,11 +290,20 @@ const Admin = () => {
                             <Users className="h-4 w-4 mr-2" />
                             User Directory
                         </TabsTrigger>
+                        <TabsTrigger value="approvals" className="font-bold px-8 h-10 data-[state=active]:bg-slate-900 data-[state=active]:text-white">
+                            <Zap className="h-4 w-4 mr-2" />
+                            Pending Approvals
+                            {transactions.filter(t => t.status === 'pending').length > 0 && (
+                                <Badge className="ml-2 bg-amber-500 border-none h-5 min-w-[20px] p-1 flex items-center justify-center">
+                                    {transactions.filter(t => t.status === 'pending').length}
+                                </Badge>
+                            )}
+                        </TabsTrigger>
                         <TabsTrigger value="messages" className="font-bold px-8 h-10 data-[state=active]:bg-slate-900 data-[state=active]:text-white">
                             <MessageSquare className="h-4 w-4 mr-2" />
                             Support Queue
                             {messages.filter(m => m.status === 'pending').length > 0 && (
-                                <Badge className="ml-2 bg-red-500 border-none h-5 w-5 p-0 flex items-center justify-center">
+                                <Badge className="ml-2 bg-red-500 border-none h-5 min-w-[20px] p-1 flex items-center justify-center">
                                     {messages.filter(m => m.status === 'pending').length}
                                 </Badge>
                             )}
@@ -214,7 +312,7 @@ const Admin = () => {
 
                     <TabsContent value="users" className="space-y-6">
                         {/* Stats Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                             <Card className="border-none shadow-sm bg-indigo-600 text-white">
                                 <CardHeader className="pb-2">
                                     <CardTitle className="text-sm font-medium opacity-80 flex items-center justify-between">
@@ -228,19 +326,31 @@ const Admin = () => {
                             <Card className="border-none shadow-sm bg-white border border-slate-200">
                                 <CardHeader className="pb-2">
                                     <CardTitle className="text-sm font-medium text-slate-500 flex items-center justify-between">
-                                        Pro & Unlimited <Star className="h-4 w-4 text-amber-500" />
+                                        Active Subs <Star className="h-4 w-4 text-amber-500" />
                                     </CardTitle>
                                     <CardContent className="p-0">
                                         <div className="text-3xl font-bold text-slate-900">
-                                            {users.filter(u => u.tier === 'pro' || u.tier === 'unlimited').length}
+                                            {users.filter(u => u.tier !== 'free').length}
                                         </div>
                                     </CardContent>
                                 </CardHeader>
                             </Card>
                             <Card className="border-none shadow-sm bg-white border border-slate-200">
-                                <CardHeader className="pb-2">
+                                <CardHeader className="pb-2 border-l-4 border-l-amber-500">
                                     <CardTitle className="text-sm font-medium text-slate-500 flex items-center justify-between">
-                                        Pending Messages <Mail className="h-4 w-4 text-primary" />
+                                        Pending Txns <Zap className="h-4 w-4 text-amber-500" />
+                                    </CardTitle>
+                                    <CardContent className="p-0">
+                                        <div className="text-3xl font-bold text-slate-900">
+                                            {transactions.filter(t => t.status === 'pending').length}
+                                        </div>
+                                    </CardContent>
+                                </CardHeader>
+                            </Card>
+                            <Card className="border-none shadow-sm bg-white border border-slate-200">
+                                <CardHeader className="pb-2 border-l-4 border-l-red-500">
+                                    <CardTitle className="text-sm font-medium text-slate-500 flex items-center justify-between">
+                                        Messages <Mail className="h-4 w-4 text-primary" />
                                     </CardTitle>
                                     <CardContent className="p-0">
                                         <div className="text-3xl font-bold text-slate-900">
@@ -355,6 +465,110 @@ const Admin = () => {
                                     </Table>
                                 </div>
                             )}
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="approvals" className="space-y-6">
+                        <Card className="border-none shadow-sm overflow-hidden">
+                            <CardHeader className="bg-white border-b border-slate-100 py-6">
+                                <CardTitle className="text-xl font-bold">Pending Approvals</CardTitle>
+                                <CardDescription className="font-medium">Verify manual payments and upgrade user accounts</CardDescription>
+                            </CardHeader>
+                            <div className="bg-white overflow-x-auto">
+                                {txnLoading ? (
+                                    <div className="h-64 flex items-center justify-center">
+                                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                    </div>
+                                ) : (
+                                    <Table>
+                                        <TableHeader className="bg-slate-50/50">
+                                            <TableRow>
+                                                <TableHead className="font-bold text-slate-900">Date</TableHead>
+                                                <TableHead className="font-bold text-slate-900">User</TableHead>
+                                                <TableHead className="font-bold text-slate-900">Plan</TableHead>
+                                                <TableHead className="font-bold text-slate-900">Amount</TableHead>
+                                                <TableHead className="font-bold text-slate-900">Proof</TableHead>
+                                                <TableHead className="font-bold text-slate-900">Status</TableHead>
+                                                <TableHead className="text-right font-bold text-slate-900">Actions</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {transactions.length === 0 ? (
+                                                <TableRow>
+                                                    <TableCell colSpan={7} className="text-center py-12 text-slate-400 font-medium italic">
+                                                        No transactions found.
+                                                    </TableCell>
+                                                </TableRow>
+                                            ) : (
+                                                transactions.map((txn) => (
+                                                    <TableRow key={txn.id} className={txn.status === 'pending' ? 'bg-amber-50/30' : ''}>
+                                                        <TableCell className="text-xs text-slate-500">
+                                                            {new Date(txn.created_at).toLocaleDateString()}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="flex flex-col">
+                                                                <span className="font-bold text-slate-900 text-xs">{txn.profiles?.display_name || "N/A"}</span>
+                                                                <span className="text-[10px] text-slate-400">{txn.profiles?.email || "N/A"}</span>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Badge variant="outline" className="text-[10px] font-bold border-slate-200">
+                                                                {txn.plan_name}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell className="font-bold text-xs">${txn.amount}</TableCell>
+                                                        <TableCell>
+                                                            <div className="flex flex-col gap-1">
+                                                                <span className="text-[10px] font-mono text-slate-500 truncate max-w-[100px]">{txn.transaction_id || "No ID"}</span>
+                                                                {txn.proof_url && (
+                                                                    <a href={txn.proof_url} target="_blank" rel="noreferrer" className="text-[10px] text-blue-600 hover:underline">View Screenshot</a>
+                                                                )}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Badge
+                                                                className={`text-[10px] font-bold ${txn.status === 'approved' ? 'bg-green-100 text-green-700 border-none' :
+                                                                    txn.status === 'rejected' ? 'bg-red-100 text-red-700 border-none' :
+                                                                        'bg-amber-100 text-amber-700 border-none animate-pulse'
+                                                                    }`}
+                                                            >
+                                                                {txn.status.toUpperCase()}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            {txn.status === 'pending' && (
+                                                                <div className="flex justify-end gap-2">
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        className="h-8 text-xs font-bold text-green-600 hover:text-green-700 hover:bg-green-50"
+                                                                        onClick={() => handleApproveTransaction(txn)}
+                                                                        disabled={updatingId === txn.id}
+                                                                    >
+                                                                        Approve
+                                                                    </Button>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        className="h-8 text-xs font-bold text-red-400 hover:text-red-500 hover:bg-red-50"
+                                                                        onClick={() => handleRejectTransaction(txn.id)}
+                                                                        disabled={updatingId === txn.id}
+                                                                    >
+                                                                        Reject
+                                                                    </Button>
+                                                                </div>
+                                                            )}
+                                                            {txn.status === 'approved' && (
+                                                                <span className="text-[10px] text-slate-400 italic">Approved {new Date(txn.approved_at).toLocaleDateString()}</span>
+                                                            )}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                )}
+                            </div>
                         </Card>
                     </TabsContent>
 

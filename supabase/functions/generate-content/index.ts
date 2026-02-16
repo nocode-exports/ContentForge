@@ -1,5 +1,8 @@
+// @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+
+declare const Deno: any;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -78,7 +81,7 @@ async function callAI(body: Record<string, any>, options: { customOpenAIKey?: st
   throw new Error("No AI API key configured or all providers failed. Please set GEMINI_API_KEY or OPENAI_API_KEY.");
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -117,12 +120,26 @@ serve(async (req) => {
 
     // Tier Enforcement logic
     const tier = profile.role === 'super_admin' || profile.role === 'admin' ? 'unlimited' : (profile.tier as string || 'free');
-    const limits: Record<string, number> = { free: 5, starter: 50, pro: 200, unlimited: 999999 };
+    const limits: Record<string, number> = { free: 5000, starter: 50000, pro: 999999, unlimited: 999999, lifetime: 999999 };
 
+    // Check if user has their own keys
+    const hasBYOK = !!(profile.custom_gemini_key || profile.custom_openai_key);
+
+    // Free tier word limit applies even with BYOK for platform traffic management
     if (currentUsage >= limits[tier]) {
-      return new Response(JSON.stringify({ error: `Monthly limit reached for ${tier} tier. Please upgrade.` }), {
+      return new Response(JSON.stringify({ error: `Monthly word limit reached for ${tier} tier. Please upgrade.` }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Use Credits check if no BYOK and not on a high-tier plan (pro/lifetime/unlimited)
+    const isPaidTier = ['pro', 'unlimited', 'lifetime'].includes(tier);
+    if (!hasBYOK && !isPaidTier) {
+      if ((profile.credits_balance || 0) < 5) { // Minimum 5 credits to start (500 words)
+        return new Response(JSON.stringify({ error: "Insufficient credits. Please add credits or bring your own API key." }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // restricted platforms for free tier
@@ -133,9 +150,12 @@ serve(async (req) => {
       });
     }
 
-    // Carousel/Article restricted for free/starter
-    if ((fullArticle || carousel) && (tier === "free" || tier === "starter")) {
-      return new Response(JSON.stringify({ error: "Carousel and Article modes are available on Pro and Unlimited plans." }), {
+    // Carousel/Article restricted for free/starter unless they have BYOK? 
+    // Usually these modes generate MORE words. We'll allow it if they BYOK or have enough credits.
+    // Based on pivot: "One-time payment. All Pro features forever." for Lifetime.
+    // "Carousel and Article modes are available on Pro and Unlimited plans."
+    if ((fullArticle || carousel) && !isPaidTier && !hasBYOK) {
+      return new Response(JSON.stringify({ error: "Carousel and Article modes are available on Pro and Unlimited plans. You can also unlock them by bringing your own API key." }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -284,8 +304,8 @@ Return a JSON object with exactly these fields:
       ],
       tool_choice: { type: "function", function: { name: functionName } },
     }, {
-      customOpenAIKey: tier === "unlimited" ? profile.custom_openai_key : undefined,
-      customGeminiKey: tier === "unlimited" ? profile.custom_gemini_key : undefined,
+      customOpenAIKey: profile.custom_openai_key,
+      customGeminiKey: profile.custom_gemini_key,
     });
 
     if (!response.ok) {
@@ -310,11 +330,23 @@ Return a JSON object with exactly these fields:
     if (!toolCall) throw new Error("No structured output returned");
 
     const content = JSON.parse(toolCall.function.arguments);
+    const wordCount = content.post ? content.post.split(/\s+/).length : 50; // estimate if post is empty (carousel/article)
+    const effectiveWordCount = fullArticle ? 1000 : carousel ? 500 : wordCount;
 
-    // Increment usage count
+    // Credit Deduction logic
+    let creditDeduction = 0;
+    if (!hasBYOK && !isPaidTier) {
+      // 1 Credit = 100 words. Round up.
+      creditDeduction = Math.max(1, Math.ceil(effectiveWordCount / 100));
+    }
+
+    // Update usage and credits
     await supabase
       .from("profiles")
-      .update({ monthly_usage_count: currentUsage + 1 })
+      .update({
+        monthly_usage_count: currentUsage + effectiveWordCount,
+        credits_balance: Math.max(0, (profile.credits_balance || 0) - creditDeduction)
+      })
       .eq("user_id", user.id);
 
     return new Response(JSON.stringify(content), {
