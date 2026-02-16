@@ -159,9 +159,9 @@ const Index = () => {
       let finalImageUrl = null;
       let finalSlides = result.slides;
 
-      if (input.carousel && result.slides) {
+      if (input.carousel && result.slides && input.includeImage !== false) {
         finalSlides = await generateCarouselImages(result.slides);
-      } else if (result.imagePrompt && !input.fullArticle) {
+      } else if (result.imagePrompt && !input.fullArticle && input.includeImage !== false) {
         finalImageUrl = await generateImage(result.imagePrompt, aspectRatio);
       }
 

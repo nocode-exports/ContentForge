@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
     User,
     Settings,
@@ -27,6 +27,7 @@ import { toast } from "sonner";
 const Profile = () => {
     const { user, profile, refreshProfile } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const [customKey, setCustomKey] = useState(profile?.custom_openai_key || "");
     const [customGeminiKey, setCustomGeminiKey] = useState(profile?.custom_gemini_key || "");
     const [bio, setBio] = useState(profile?.bio || "");
@@ -44,6 +45,16 @@ const Profile = () => {
             setBio(profile.bio || "");
         }
     }, [profile]);
+
+    useEffect(() => {
+        if (location.hash === "#contact") {
+            const element = document.getElementById("contact");
+            if (element) {
+                element.scrollIntoView({ behavior: "smooth" });
+                setMsgSubject("Upgrade Inquiry");
+            }
+        }
+    }, [location]);
 
     useEffect(() => {
         const fetchHistory = async () => {
@@ -333,7 +344,7 @@ const Profile = () => {
                         </div>
 
                         {/* Contact Support Section */}
-                        <div className="glass-card p-6 space-y-6">
+                        <div id="contact" className="glass-card p-6 space-y-6 scroll-mt-20">
                             <div className="flex items-center gap-2">
                                 <Shield className="h-5 w-5 text-primary" />
                                 <h3 className="font-bold text-lg text-slate-900">Contact Sales & Support</h3>

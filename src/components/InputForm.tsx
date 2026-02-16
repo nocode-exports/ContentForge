@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   Instagram, Facebook, Twitter, Linkedin, Music2,
   Youtube, MessageSquare, Share2, AtSign, Cloud,
-  Zap, ChevronRight, BookOpen, Layout, Lock
+  Zap, ChevronRight, BookOpen, Layout, Lock, Image as ImageIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,6 +45,7 @@ const InputForm = ({ onGenerate, isLoading, userTier = "free" }: InputFormProps)
   const [carousel, setCarousel] = useState(false);
   const [carouselSlides, setCarouselSlides] = useState(5);
   const [carouselFormat, setCarouselFormat] = useState("square");
+  const [includeImage, setIncludeImage] = useState(true);
 
   const freePlatforms = ["instagram", "facebook", "twitter"];
   const availablePlatforms = userTier === "free"
@@ -70,6 +71,7 @@ const InputForm = ({ onGenerate, isLoading, userTier = "free" }: InputFormProps)
       carousel,
       carouselSlides,
       carouselFormat,
+      includeImage,
     });
   };
 
@@ -178,7 +180,10 @@ const InputForm = ({ onGenerate, isLoading, userTier = "free" }: InputFormProps)
                 return;
               }
               setFullArticle(checked);
-              if (checked) setCarousel(false);
+              if (checked) {
+                setCarousel(false);
+                setIncludeImage(false);
+              }
             }}
           />
         </div>
@@ -204,8 +209,27 @@ const InputForm = ({ onGenerate, isLoading, userTier = "free" }: InputFormProps)
                 return;
               }
               setCarousel(checked);
-              if (checked) setFullArticle(false);
+              if (checked) {
+                setFullArticle(false);
+                setIncludeImage(true);
+              }
             }}
+          />
+        </div>
+
+        <div className="flex items-center justify-between glass-card p-3 border-dashed bg-slate-50/50">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-indigo-100">
+              <ImageIcon className="h-4 w-4 text-indigo-600" />
+            </div>
+            <div>
+              <p className="text-sm font-bold">Include AI Visuals</p>
+              <p className="text-[10px] font-medium text-slate-500 uppercase tracking-widest">Image prompts & generation</p>
+            </div>
+          </div>
+          <Switch
+            checked={includeImage}
+            onCheckedChange={setIncludeImage}
           />
         </div>
 

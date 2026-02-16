@@ -186,6 +186,7 @@ const Pricing = () => {
                                     className={`w-full h-11 text-base font-bold transition-all ${plan.highlight ? 'gradient-btn' : 'bg-slate-900 hover:bg-black text-white'}`}
                                     variant={plan.current ? "secondary" : "default"}
                                     disabled={plan.current}
+                                    onClick={() => navigate("/profile#contact")}
                                 >
                                     {plan.buttonText}
                                 </Button>
@@ -199,7 +200,12 @@ const Pricing = () => {
                     <p className="text-slate-500 font-medium mb-8 max-w-2xl mx-auto">
                         We offer white-label solutions, API access, and bulk discounts for enterprises and large digital agencies.
                     </p>
-                    <Button variant="outline" size="lg" className="rounded-full px-10 h-12 font-bold hover:bg-slate-50">
+                    <Button
+                        variant="outline"
+                        size="lg"
+                        className="rounded-full px-10 h-12 font-bold hover:bg-slate-50"
+                        onClick={() => navigate("/profile#contact")}
+                    >
                         Contact Sales Team
                     </Button>
                 </div>

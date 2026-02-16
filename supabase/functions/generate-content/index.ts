@@ -113,10 +113,10 @@ serve(async (req) => {
         .eq("user_id", user.id);
     }
 
-    const { topic, platform, tone, template, fullArticle, carousel, carouselSlides } = await req.json();
+    const { topic, platform, tone, template, fullArticle, carousel, carouselSlides, includeImage } = await req.json();
 
     // Tier Enforcement logic
-    const tier = profile.tier as string;
+    const tier = profile.role === 'super_admin' || profile.role === 'admin' ? 'unlimited' : (profile.tier as string || 'free');
     const limits: Record<string, number> = { free: 5, starter: 50, pro: 200, unlimited: 999999 };
 
     if (currentUsage >= limits[tier]) {
@@ -154,6 +154,9 @@ serve(async (req) => {
     let parameters: Record<string, any>;
 
     const bioContext = profile.bio ? `\n\nUser/Brand Context: ${profile.bio}` : "";
+    const imageInstruction = includeImage !== false ? "- Include an AI image suggestion prompt" : "- DO NOT include any image prompts or visual descriptions";
+    const heroImageInstruction = includeImage !== false ? "- Include a hero image prompt" : "- DO NOT include any image prompts";
+    const carouselImageInstruction = includeImage !== false ? "- Each slide needs a title, bullet points (2-3), and a visual description for image generation" : "- Each slide needs a title and bullet points (2-3) only";
 
     if (fullArticle) {
       functionName = "generate_full_article";
@@ -167,7 +170,7 @@ Rules:
 - Include a compelling headline
 - Structure with subheadings (H2/H3), bullet points, and clear sections
 - Include an engaging introduction and strong conclusion
-- For each major section, include an AI image suggestion prompt
+- ${includeImage !== false ? "For each major section, include an AI image suggestion prompt" : "Focus entirely on high-quality text content, no image prompts needed."}
 
 Return structured output with the article content and image suggestions.`;
 
@@ -178,7 +181,7 @@ Return structured output with the article content and image suggestions.`;
           post: { type: "string", description: "Full article in markdown (800-1200 words with ## headings, bullet points, bold text)" },
           hashtags: { type: "array", items: { type: "string" }, description: "Relevant hashtags" },
           cta: { type: "string", description: "Call to action" },
-          imagePrompt: { type: "string", description: "Hero image prompt" },
+          imagePrompt: { type: "string", description: includeImage !== false ? "Hero image prompt" : "Empty string" },
           sectionImages: {
             type: "array",
             items: {
@@ -187,7 +190,7 @@ Return structured output with the article content and image suggestions.`;
               required: ["section", "imagePrompt"],
               additionalProperties: false,
             },
-            description: "Image suggestions for each section",
+            description: includeImage !== false ? "Image suggestions for each section" : "Empty list",
           },
         },
         required: ["headline", "post", "hashtags", "cta", "imagePrompt", "sectionImages"],
@@ -202,7 +205,7 @@ ${bioContext}
 Rules:
 - Tone: ${tone}
 - ${templateHint}
-- Each slide needs a title, bullet points (2-3), and a visual description for image generation
+- ${carouselImageInstruction}
 - First slide should be a hook/cover, last slide should be a CTA
 - Keep text per slide concise and impactful
 - Maintain consistent branding narrative across all slides
@@ -216,7 +219,7 @@ Return structured output.`;
           post: { type: "string", description: "Caption text for the carousel post" },
           hashtags: { type: "array", items: { type: "string" }, description: "Relevant hashtags" },
           cta: { type: "string", description: "Call to action" },
-          imagePrompt: { type: "string", description: "Overall visual theme prompt" },
+          imagePrompt: { type: "string", description: includeImage !== false ? "Overall visual theme prompt" : "Empty string" },
           slides: {
             type: "array",
             items: {
@@ -225,7 +228,7 @@ Return structured output.`;
                 slideNumber: { type: "number" },
                 title: { type: "string" },
                 bulletPoints: { type: "array", items: { type: "string" } },
-                imagePrompt: { type: "string", description: "Detailed image generation prompt for this slide" },
+                imagePrompt: { type: "string", description: includeImage !== false ? "Detailed image generation prompt for this slide" : "Empty string" },
               },
               required: ["slideNumber", "title", "bulletPoints", "imagePrompt"],
               additionalProperties: false,
@@ -244,13 +247,14 @@ Rules:
 - Tone: ${tone}
 - Max post length: ${charLimit} characters
 - ${templateHint}
+${includeImage !== false ? "- Include a detailed image generation prompt" : "- DO NOT include any image prompts"}
 
 Return a JSON object with exactly these fields:
 - headline: A catchy, attention-grabbing headline (max 80 chars)
 - post: The main post text, optimized for ${platform} engagement
 - hashtags: An array of 5-8 relevant hashtags (without the # symbol)
 - cta: A compelling call-to-action sentence
-- imagePrompt: A detailed image generation prompt that would create a stunning visual for this post.`;
+- imagePrompt: ${includeImage !== false ? "A detailed image generation prompt" : "Empty string"}`;
 
       parameters = {
         type: "object",
