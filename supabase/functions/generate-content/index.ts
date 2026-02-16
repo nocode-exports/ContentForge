@@ -153,9 +153,12 @@ serve(async (req) => {
     let systemPrompt: string;
     let parameters: Record<string, any>;
 
+    const bioContext = profile.bio ? `\n\nUser/Brand Context: ${profile.bio}` : "";
+
     if (fullArticle) {
       functionName = "generate_full_article";
       systemPrompt = `You are a world-class content writer. Generate a comprehensive blog-style article (800–1200 words) about the given topic.
+${bioContext}
 
 Rules:
 - Tone: ${tone}
@@ -194,6 +197,7 @@ Return structured output with the article content and image suggestions.`;
       functionName = "generate_carousel_content";
       const slideCount = carouselSlides || 5;
       systemPrompt = `You are a world-class social media content strategist specializing in carousel posts. Generate a ${slideCount}-slide carousel post optimized for ${platform}.
+${bioContext}
 
 Rules:
 - Tone: ${tone}
@@ -234,6 +238,7 @@ Return structured output.`;
       };
     } else {
       systemPrompt = `You are a world-class social media content strategist. Generate engaging content optimized for ${platform}.
+${bioContext}
 
 Rules:
 - Tone: ${tone}

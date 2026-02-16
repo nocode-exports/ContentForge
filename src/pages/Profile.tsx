@@ -11,7 +11,8 @@ import {
     Save,
     Clock,
     ExternalLink,
-    Coins
+    Coins,
+    Sparkles
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -28,6 +29,7 @@ const Profile = () => {
     const navigate = useNavigate();
     const [customKey, setCustomKey] = useState(profile?.custom_openai_key || "");
     const [customGeminiKey, setCustomGeminiKey] = useState(profile?.custom_gemini_key || "");
+    const [bio, setBio] = useState(profile?.bio || "");
     const [isSaving, setIsSaving] = useState(false);
     const [history, setHistory] = useState<any[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(true);
@@ -39,6 +41,7 @@ const Profile = () => {
         if (profile) {
             setCustomKey(profile.custom_openai_key || "");
             setCustomGeminiKey(profile.custom_gemini_key || "");
+            setBio(profile.bio || "");
         }
     }, [profile]);
 
@@ -63,20 +66,26 @@ const Profile = () => {
     }, [user]);
 
     const handleUpdateKeys = async () => {
-        if (!profile) return;
+        if (!user) return;
         setIsSaving(true);
-        const { error } = await supabase
+        console.log("Saving profile for user:", user.id, { customKey, customGeminiKey, bio });
+
+        const { data, error } = await supabase
             .from("profiles")
             .update({
                 custom_openai_key: customKey,
-                custom_gemini_key: customGeminiKey
+                custom_gemini_key: customGeminiKey,
+                bio: bio
             })
-            .eq("user_id", profile.user_id);
+            .eq("user_id", user.id)
+            .select();
 
         if (error) {
-            toast.error("Failed to update API keys: " + error.message);
+            console.error("Update error:", error);
+            toast.error("Failed to update: " + error.message);
         } else {
-            toast.success("API keys updated successfully");
+            console.log("Update success:", data);
+            toast.success("Settings updated successfully");
             refreshProfile();
         }
         setIsSaving(false);
@@ -151,9 +160,14 @@ const Profile = () => {
                                     <h3 className="font-bold text-lg text-slate-900">{profile?.display_name || user.email?.split('@')[0]}</h3>
                                     <p className="text-sm text-slate-500">{user.email}</p>
                                 </div>
-                                <Badge variant="secondary" className="font-bold uppercase tracking-wider">
-                                    {profile?.tier || "FREE"} PLAN
-                                </Badge>
+                                <div className="flex flex-col gap-1">
+                                    <Badge variant="secondary" className="font-bold uppercase tracking-wider">
+                                        {profile?.tier || "FREE"} PLAN
+                                    </Badge>
+                                    <Badge variant="outline" className="font-bold text-[10px] uppercase border-primary/20 bg-primary/5 text-primary">
+                                        ROLE: {profile?.role || "USER"}
+                                    </Badge>
+                                </div>
                             </div>
 
                             <Separator />
@@ -200,11 +214,11 @@ const Profile = () => {
                         {profile?.role && ["super_admin", "admin"].includes(profile.role) && (
                             <Button
                                 variant="outline"
-                                className="w-full font-bold text-primary"
+                                className="w-full font-bold text-primary border-primary/20 hover:bg-primary/5"
                                 onClick={() => navigate("/admin")}
                             >
                                 <Shield className="h-4 w-4 mr-2" />
-                                Admin Dashboard
+                                Manage Users (Admin)
                             </Button>
                         )}
                     </div>
@@ -277,9 +291,44 @@ const Profile = () => {
                                         disabled={isSaving}
                                     >
                                         <Save className="h-4 w-4 mr-2" />
-                                        {isSaving ? "Saving..." : "Save Custom API Keys"}
+                                        {isSaving ? "Saving..." : "Save Settings & Keys"}
                                     </Button>
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* Personalization Bio */}
+                        <div className="glass-card p-6 space-y-6">
+                            <div className="flex items-center gap-2">
+                                <Sparkles className="h-5 w-5 text-primary" />
+                                <h3 className="font-bold text-lg text-slate-900">Personalization & Brand Context</h3>
+                            </div>
+
+                            <p className="text-sm text-slate-500 italic">
+                                Tell us about yourself or your brand. This information will be used by the AI to tailor content specifically to your tone and history.
+                            </p>
+
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-bold text-slate-700 uppercase">Brand Story / Personal Bio</Label>
+                                    <textarea
+                                        className="min-h-[150px] w-full rounded-md border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium"
+                                        placeholder="E.g. I am a tech influencer focusing on AI tools... OR ContentForge is a SaaS startup helping marketers..."
+                                        value={bio}
+                                        onChange={(e) => setBio(e.target.value)}
+                                    />
+                                    <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
+                                        Tip: Include your typical audience, product description, and overall mission for best results.
+                                    </p>
+                                </div>
+                                <Button
+                                    onClick={handleUpdateKeys}
+                                    className="w-full font-bold h-10"
+                                    disabled={isSaving}
+                                >
+                                    <Save className="h-4 w-4 mr-2" />
+                                    Update Personalization
+                                </Button>
                             </div>
                         </div>
 
