@@ -79,6 +79,28 @@ CREATE TABLE public.messages (
 
 -- 3. FUNCTIONS & TRIGGERS
 
+-- Helper Functions to check roles without recursion
+-- SECURITY DEFINER makes these run as 'postgres' (superuser), bypassing RLS
+CREATE OR REPLACE FUNCTION public.check_user_is_admin()
+RETURNS BOOLEAN AS $$
+DECLARE
+    u_role public.user_role;
+BEGIN
+    SELECT role INTO u_role FROM public.profiles WHERE user_id = auth.uid();
+    RETURN u_role IN ('super_admin', 'admin', 'moderator');
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+CREATE OR REPLACE FUNCTION public.check_user_is_super_admin()
+RETURNS BOOLEAN AS $$
+DECLARE
+    u_role public.user_role;
+BEGIN
+    SELECT role INTO u_role FROM public.profiles WHERE user_id = auth.uid();
+    RETURN u_role = 'super_admin';
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
 -- Auto-create profile on signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
@@ -113,34 +135,30 @@ ALTER TABLE public.content_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 
 -- Profiles Policies
-CREATE POLICY "Users can read own profile" ON public.profiles FOR SELECT 
-USING (auth.uid() = user_id OR (SELECT (role::text) FROM public.profiles WHERE user_id = auth.uid()) IN ('super_admin', 'admin', 'moderator'));
+CREATE POLICY "Read own profile" ON public.profiles FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Admins read all profiles" ON public.profiles FOR SELECT USING (public.check_user_is_admin());
 
-CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE 
-USING (auth.uid() = user_id OR (SELECT (role::text) FROM public.profiles WHERE user_id = auth.uid()) = 'super_admin');
+CREATE POLICY "Update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "SuperAdmins update all profiles" ON public.profiles FOR UPDATE USING (public.check_user_is_super_admin());
 
-CREATE POLICY "Users can insert own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Insert own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Content History Policies
-CREATE POLICY "Users can view own history" ON public.content_history FOR SELECT 
-USING (auth.uid() = user_id OR (SELECT (role::text) FROM public.profiles WHERE user_id = auth.uid()) IN ('super_admin', 'admin', 'moderator'));
+CREATE POLICY "View own history" ON public.content_history FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Admins view all history" ON public.content_history FOR SELECT USING (public.check_user_is_admin());
 
-CREATE POLICY "Users can insert own history" ON public.content_history FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Insert own history" ON public.content_history FOR INSERT WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can delete own history" ON public.content_history FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "Delete own history" ON public.content_history FOR DELETE USING (auth.uid() = user_id);
 
 -- Messages Policies
-CREATE POLICY "Users can insert own messages" ON public.messages FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Insert own messages" ON public.messages FOR INSERT WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can view own messages" ON public.messages FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "View own messages" ON public.messages FOR SELECT USING (auth.uid() = user_id);
 
-CREATE POLICY "Admins can view all messages" ON public.messages FOR SELECT USING (
-    (SELECT (role::text) FROM public.profiles WHERE user_id = auth.uid()) IN ('admin', 'super_admin')
-);
+CREATE POLICY "Admins view all messages" ON public.messages FOR SELECT USING (public.check_user_is_admin());
 
-CREATE POLICY "Admins can update messages" ON public.messages FOR UPDATE USING (
-    (SELECT (role::text) FROM public.profiles WHERE user_id = auth.uid()) IN ('admin', 'super_admin')
-);
+CREATE POLICY "Admins update messages" ON public.messages FOR UPDATE USING (public.check_user_is_admin());
 
 -- 6. STORAGE BUCKETS (Re-ensure)
 INSERT INTO storage.buckets (id, name, public) 
