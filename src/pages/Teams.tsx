@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Users, Plus, Shield, Trash2, UserPlus } from "lucide-react";
+import { Loader2, Users, Plus, Shield, Trash2, UserPlus, Zap, LogOut, User } from "lucide-react";
 import { toast } from "sonner";
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow
@@ -15,7 +16,8 @@ import {
 } from "@/components/ui/dialog";
 
 const Teams = () => {
-    const { profile, loading: authLoading } = useAuth();
+    const { profile, loading: authLoading, signOut } = useAuth();
+    const navigate = useNavigate();
     const [team, setTeam] = useState<any | null>(null);
     const [members, setMembers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -180,9 +182,45 @@ const Teams = () => {
     }
 
     return (
-        <div className="min-h-screen bg-[#fafafa] p-4 md:p-8">
-            <div className="max-w-4xl mx-auto space-y-8">
+        <div className="min-h-screen bg-[#fafafa]">
+            {/* Top Menu / Header */}
+            <header className="border-b bg-white/80 backdrop-blur-md sticky top-0 z-50">
+                <div className="container max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+                    <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
+                        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                            <span className="text-white font-bold text-lg">C</span>
+                        </div>
+                        <span className="font-bold text-xl tracking-tight hidden sm:inline-block">ContentForge</span>
+                    </div>
 
+                    <div className="flex items-center gap-4">
+                        {profile?.role && ["super_admin", "admin"].includes(profile.role) && (
+                            <Button variant="ghost" size="sm" onClick={() => navigate("/admin")} className="font-bold text-primary">
+                                <Shield className="h-4 w-4 mr-2" />
+                                Admin
+                            </Button>
+                        )}
+                        <Button variant="ghost" size="sm" onClick={() => navigate("/pricing")} className="font-bold">
+                            <Zap className="h-4 w-4 mr-2 text-amber-500" />
+                            {profile?.tier ? profile.tier.toUpperCase() : "FREE"} PLAN
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => navigate("/teams")} className="font-bold text-slate-500 bg-slate-100">
+                            <Users className="h-4 w-4 mr-2" />
+                            Teams
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => navigate("/profile")} className="font-bold text-slate-500">
+                            <User className="h-4 w-4 mr-2" />
+                            Profile
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={signOut} className="font-bold text-slate-500">
+                            <LogOut className="h-4 w-4 mr-2" />
+                            Sign Out
+                        </Button>
+                    </div>
+                </div>
+            </header>
+
+            <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-8">
                 <div className="space-y-1">
                     <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 flex items-center gap-3">
                         Team Management <Users className="h-6 w-6 text-indigo-600" />

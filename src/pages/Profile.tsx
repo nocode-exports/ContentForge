@@ -12,7 +12,8 @@ import {
     Clock,
     ExternalLink,
     Coins,
-    Sparkles
+    Sparkles,
+    Users
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -136,20 +137,29 @@ const Profile = () => {
 
     return (
         <div className="min-h-screen bg-[#fafafa] pb-12">
+            {/* Top Menu / Header */}
             <header className="border-b bg-white/80 backdrop-blur-md sticky top-0 z-50">
                 <div className="container max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="font-bold">
-                            <ArrowLeft className="h-4 w-4 mr-2" />
-                            Back
-                        </Button>
-                        <Separator orientation="vertical" className="h-6" />
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                                <User className="h-5 w-5 text-white" />
-                            </div>
-                            <span className="font-bold text-xl tracking-tight">Account Settings</span>
+                    <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
+                        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                            <span className="text-white font-bold text-lg">C</span>
                         </div>
+                        <span className="font-bold text-xl tracking-tight hidden sm:inline-block">ContentForge</span>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                        <Button variant="ghost" size="sm" onClick={() => navigate("/teams")} className="font-bold text-slate-500">
+                            <Users className="h-4 w-4 mr-2" />
+                            Teams
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => navigate("/pricing")} className="font-bold text-slate-500">
+                            <Coins className="h-4 w-4 mr-2" />
+                            Pricing
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="font-bold text-slate-500">
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Back to App
+                        </Button>
                     </div>
                 </div>
             </header>

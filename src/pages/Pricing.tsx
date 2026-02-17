@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { Check, ArrowLeft, Instagram, Facebook, Twitter, Chrome, Zap, Star, ShieldCheck, Copy, Upload, Loader2 } from "lucide-react";
+import { Check, ArrowLeft, Instagram, Facebook, Chrome, Zap, Star, ShieldCheck, Copy, Upload, Loader2, Users, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { XIcon } from "@/components/icons/XIcon";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -71,7 +72,7 @@ const Pricing = () => {
             description: "Perfect for testing the platform.",
             features: [
                 "500 curated words / month",
-                "Platforms: LinkedIn, Twitter",
+                "Platforms: LinkedIn, X (Twitter)",
                 "Basic AI models",
                 "No api key required",
             ],
@@ -142,26 +143,40 @@ const Pricing = () => {
 
     return (
         <div className="min-h-screen bg-[#fafafa] pb-20">
-            {/* Header */}
-            <div className="border-b bg-white/80 backdrop-blur-md sticky top-0 z-50">
+            {/* Top Menu / Header */}
+            <header className="border-b bg-white/80 backdrop-blur-md sticky top-0 z-50">
                 <div className="container max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-                    <Button
-                        variant="ghost"
-                        onClick={() => navigate("/")}
-                        className="group font-medium"
-                    >
-                        <ArrowLeft className="mr-2 h-4 w-4 group-hover:-translate-x-1 transition-transform" />
-                        Back to App
-                    </Button>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
                         <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
                             <span className="text-white font-bold text-lg">C</span>
                         </div>
-                        <span className="font-bold text-xl tracking-tight">ContentForge</span>
+                        <span className="font-bold text-xl tracking-tight hidden sm:inline-block">ContentForge</span>
                     </div>
-                    <div className="w-[100px]"></div> {/* Spacer */}
+
+                    <div className="flex items-center gap-4">
+                        {user ? (
+                            <>
+                                <Button variant="ghost" size="sm" onClick={() => navigate("/teams")} className="font-bold text-slate-500">
+                                    <Users className="h-4 w-4 mr-2" />
+                                    Teams
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={() => navigate("/profile")} className="font-bold text-slate-500">
+                                    <User className="h-4 w-4 mr-2" />
+                                    Profile
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="font-bold text-slate-500">
+                                    <ArrowLeft className="h-4 w-4 mr-2" />
+                                    Back to App
+                                </Button>
+                            </>
+                        ) : (
+                            <Button variant="ghost" size="sm" onClick={() => navigate("/auth")} className="font-bold text-primary">
+                                Sign In
+                            </Button>
+                        )}
+                    </div>
                 </div>
-            </div>
+            </header>
 
             <div className="container max-w-7xl mx-auto px-4 pt-16">
                 <div className="text-center max-w-2xl mx-auto mb-16">

@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import {
-  Instagram, Facebook, Twitter, Linkedin, Music2,
+  Instagram, Facebook, Linkedin, Music2,
   Youtube, MessageSquare, Share2, AtSign, Cloud,
   Zap, ChevronRight, BookOpen, Layout, Lock, Image as ImageIcon
 } from "lucide-react";
+import { XIcon } from "@/components/icons/XIcon";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -26,7 +27,7 @@ interface InputFormProps {
 const platforms = [
   { id: "instagram", label: "Instagram", icon: Instagram, color: "text-pink-600", bg: "bg-pink-50" },
   { id: "facebook", label: "Facebook", icon: Facebook, color: "text-blue-600", bg: "bg-blue-50" },
-  { id: "twitter", label: "X (Twitter)", icon: Twitter, color: "text-slate-900", bg: "bg-slate-50" },
+  { id: "twitter", label: "X (Twitter)", icon: XIcon, color: "text-slate-900", bg: "bg-slate-50" },
   { id: "linkedin", label: "LinkedIn", icon: Linkedin, color: "text-blue-700", bg: "bg-blue-50" },
   { id: "tiktok", label: "TikTok", icon: Music2, color: "text-black", bg: "bg-slate-50" },
   { id: "youtube", label: "YouTube", icon: Youtube, color: "text-red-600", bg: "bg-red-50" },
