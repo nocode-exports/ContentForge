@@ -81,6 +81,13 @@ serve(async (req: Request) => {
     const isPaidTier = ['pro', 'unlimited', 'lifetime'].includes(tier);
     const hasBYOK = !!profile.custom_openai_key;
 
+    // Strict Access Control: No Images for Free Tier unless BYOK
+    if (tier === "free" && !hasBYOK) {
+      return new Response(JSON.stringify({ error: "Image generation is not available on the Free tier. Please upgrade or add your own API key." }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Check monthly image limit for paid tiers (50)
     // We'll use a simple count from history for now or just trust the system
     // For now, let's assume we want to protect platform costs.

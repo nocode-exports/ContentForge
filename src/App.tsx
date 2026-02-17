@@ -9,6 +9,7 @@ import Auth from "@/pages/Auth";
 import Pricing from "@/pages/Pricing";
 import Profile from "@/pages/Profile";
 import Admin from "@/pages/Admin";
+import Teams from "@/pages/Teams";
 import NotFound from "@/pages/NotFound";
 import { AuthGuard } from "@/components/AuthGuard";
 import { AdminGuard } from "@/components/AdminGuard";
@@ -48,6 +49,14 @@ const App = () => (
                   <AdminGuard>
                     <Admin />
                   </AdminGuard>
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/teams"
+              element={
+                <AuthGuard>
+                  <Teams />
                 </AuthGuard>
               }
             />

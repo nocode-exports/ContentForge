@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { Zap, LogOut, Sparkles, Image, Shield, Settings, User } from "lucide-react";
+import { Zap, LogOut, Sparkles, Image, Shield, Settings, User, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -270,6 +270,10 @@ const Index = () => {
             <Button variant="ghost" size="sm" onClick={() => navigate("/pricing")} className="font-bold">
               <Zap className="h-4 w-4 mr-2 text-amber-500" />
               {profile?.tier ? profile.tier.toUpperCase() : "FREE"} PLAN
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/teams")} className="font-bold text-slate-500">
+              <Users className="h-4 w-4 mr-2" />
+              Teams
             </Button>
             <Button variant="ghost" size="sm" onClick={() => navigate("/profile")} className="font-bold text-slate-500">
               <User className="h-4 w-4 mr-2" />

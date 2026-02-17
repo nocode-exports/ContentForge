@@ -162,6 +162,13 @@ serve(async (req: Request) => {
       });
     }
 
+    // Image Generation restricted for free tier
+    if (includeImage !== false && tier === "free" && !hasBYOK) {
+      return new Response(JSON.stringify({ error: "Image generation is not available on the Free tier. Please upgrade to include AI visuals." }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const platformLimits: Record<string, number> = {
       twitter: 280, instagram: 2200, linkedin: 3000, facebook: 5000,
       reddit: 10000, pinterest: 500, tiktok: 2200, youtube: 5000,

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Instagram, Facebook, Twitter, Linkedin, Music2,
   Youtube, MessageSquare, Share2, AtSign, Cloud,
@@ -52,9 +52,17 @@ const InputForm = ({ onGenerate, isLoading, userTier = "free" }: InputFormProps)
     ? platforms.filter(p => freePlatforms.includes(p.id))
     : platforms;
 
-  const isFeatureLocked = (feature: "carousel" | "article") => {
+  const isFeatureLocked = (feature: "carousel" | "article" | "image") => {
+    if (feature === "image") return userTier === "free";
     return userTier === "free" || userTier === "starter";
   };
+
+  // Force reset image toggle if tier changes or is locked
+  useEffect(() => {
+    if (isFeatureLocked("image")) {
+      setIncludeImage(false);
+    }
+  }, [userTier]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +79,7 @@ const InputForm = ({ onGenerate, isLoading, userTier = "free" }: InputFormProps)
       carousel,
       carouselSlides,
       carouselFormat,
-      includeImage,
+      includeImage: userTier === "free" ? false : includeImage,
     });
   };
 
@@ -219,17 +227,26 @@ const InputForm = ({ onGenerate, isLoading, userTier = "free" }: InputFormProps)
 
         <div className="flex items-center justify-between glass-card p-3 border-dashed bg-slate-50/50">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-indigo-100">
-              <ImageIcon className="h-4 w-4 text-indigo-600" />
+            <div className={`p-2 rounded-lg ${isFeatureLocked("image") ? 'bg-slate-100' : 'bg-indigo-100'}`}>
+              <ImageIcon className={`h-4 w-4 ${isFeatureLocked("image") ? 'text-slate-400' : 'text-indigo-600'}`} />
             </div>
             <div>
-              <p className="text-sm font-bold">Include AI Visuals</p>
+              <p className="text-sm font-bold flex items-center gap-1.5">
+                Include AI Visuals
+                {isFeatureLocked("image") && <Lock className="h-3 w-3 text-slate-400" />}
+              </p>
               <p className="text-[10px] font-medium text-slate-500 uppercase tracking-widest">Image prompts & generation</p>
             </div>
           </div>
           <Switch
             checked={includeImage}
-            onCheckedChange={setIncludeImage}
+            onCheckedChange={(checked) => {
+              if (isFeatureLocked("image")) {
+                toast.error("Upgrade Required", { description: "Image generation is not available on the Free tier." });
+                return;
+              }
+              setIncludeImage(checked);
+            }}
           />
         </div>
 
